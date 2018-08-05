@@ -43,6 +43,7 @@ insertQuery = ("INSERT INTO `{board}`"
                "    SELECT 0,%s,0,%s,%s,%s,0,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s "
                "    FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `{board}` WHERE num = %s AND subnum = 0)"
                "      AND NOT EXISTS (SELECT 1 FROM `{board}_deleted` WHERE num = %s AND subnum = 0);\n")
+updateQuery = "UPDATE `{board}` SET comment = %s, deleted = %s, media_filename = COALESCE(%s, media_filename), sticky = (%s OR sticky), locked = (%s or locked) WHERE num = %s AND subnum = %s"
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='eve.log',level=logging.DEBUG)
@@ -79,6 +80,7 @@ class Board(object):
         self.posts = {}
         self.insertQueue = eventlet.queue.Queue()
         self.insertQuery = insertQuery.format(board = board)
+        self.updateQuery = updateQuery.format(board = board)
         self.threadUpdateQueue = eventlet.queue.PriorityQueue()
 
         eventlet.spawn(self.threadListUpdater)
@@ -152,6 +154,16 @@ class Board(object):
             post = self.insertQueue.get()
             with connectionPool.item() as conn:
                 utils.status("processing post {}:{}, {}qDB {}q4CH".format(post['board'], post['no'], self.insertQueue.qsize(), scraper.requestQueue.qsize()))
+
+                result = conn.cursor().execute(updateQuery.format(board=post['board']),
+                    (post.get('com', None),
+                     0,
+                     post.get('filename', None),
+                     post.get('sticky', 0),
+                     post.get('closed', 0),
+                     post['no'], #post number
+                     post['resto'] if post['resto'] != 0 else post['no'], #resto is RESponse TO (thread number)
+                     ))
 
                 result = conn.cursor().execute(insertQuery.format(board=post['board']),
                     (post['no'], #post number
