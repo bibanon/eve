@@ -64,9 +64,7 @@ def add_custom_print_exception():
 add_custom_print_exception()
 
 def ratelimit():
-    # print("waiting for ratelimit")
     ratelimitSemaphore.acquire()
-    # print('ratelimit acquired')
     eventlet.greenthread.spawn_after(1, ratelimitSemaphore.release)
     return
 
@@ -93,13 +91,11 @@ class Board(object):
             scraper.get("https://a.4cdn.org/{}/threads.json".format(self.board), evt)
             threadsJson = evt.wait().json()
             logger.info(self.board + ': fetched threads.json.')
-            # logger.debug(self.board + ': done, loading threads.')
             tmp = []
             for page in threadsJson:
                 for thread in page['threads']:
                     tmp.append(thread)
             for priority, thread in enumerate(tmp[::-1]):#fetch oldest threads first 
-                # print('processing thread {}'.format(thread['no']))
                 if thread['no'] not in self.threads:
                     logger.debug("Thread %s is new, queueing", thread['no'])
                     self.threads[thread['no']] = thread
@@ -132,7 +128,6 @@ class Board(object):
                 return
             elif r.status_code == 400:
                 print("HTTP error 400 - what do?")
-                # [board for board in boards if board.board == thread[0]] #where did this come from?
                 return
             else:
                 pass #just break I guess? can't code this if I don't know what would cause it
@@ -148,9 +143,6 @@ class Board(object):
     
     def inserter(self):
         while True:
-            # if insertQueue.empty():
-            #     break #only for testing
-
             post = self.insertQueue.get()
             with connectionPool.item() as conn:
                 utils.status("processing post {}:{}, {}qDB {}q4CH".format(post['board'], post['no'], self.insertQueue.qsize(), scraper.requestQueue.qsize()))
@@ -192,7 +184,7 @@ class Board(object):
                      post.get('closed', 0),
                      "Dev" if post.get('id', None) == "Developer" else post.get('id', None),
                      post.get('country', None),
-                     None, #FIXME: Implement
+                     None, #The setter for this in Asagi is never referenced anywhere, so this should always be null, right?
                      post['no'], #post number
                      post['no'], #post number
                      ))
