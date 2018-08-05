@@ -147,16 +147,6 @@ class Board(object):
             with connectionPool.item() as conn:
                 utils.status("processing post {}:{}, {}qDB {}q4CH".format(post['board'], post['no'], self.insertQueue.qsize(), scraper.requestQueue.qsize()))
 
-                result = conn.cursor().execute(updateQuery.format(board=post['board']),
-                    (post.get('com', None),
-                     0,
-                     post.get('filename', None),
-                     post.get('sticky', 0),
-                     post.get('closed', 0),
-                     post['no'], #post number
-                     post['resto'] if post['resto'] != 0 else post['no'], #resto is RESponse TO (thread number)
-                     ))
-
                 result = conn.cursor().execute(insertQuery.format(board=post['board']),
                     (post['no'], #post number
                      post['resto'] if post['resto'] != 0 else post['no'], #resto is RESponse TO (thread number)
@@ -187,6 +177,16 @@ class Board(object):
                      None, #The setter for this in Asagi is never referenced anywhere, so this should always be null, right?
                      post['no'], #post number
                      post['no'], #post number
+                     ))
+
+                result = conn.cursor().execute(updateQuery.format(board=post['board']),
+                    (post.get('com', None),
+                     0,
+                     post.get('filename', None),
+                     post.get('sticky', 0),
+                     post.get('closed', 0),
+                     post['no'], #post number
+                     post['resto'] if post['resto'] != 0 else post['no'], #resto is RESponse TO (thread number)
                      ))
                 conn.commit()
             self.insertQueue.task_done()
