@@ -175,7 +175,7 @@ class Board(object):
                      str(post.get('tim')) + "s.jpg" if post.get('tim') else None,
                      post.get('tn_w', 0),
                      post.get('tn_h', 0),
-                     post.get('filename', None),
+                     post['filename']+post['ext'] if 'md5' in post else None,
                      post.get('w', 0),
                      post.get('h', 0),
                      post.get('fsize', 0),
