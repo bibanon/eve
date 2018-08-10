@@ -81,7 +81,7 @@ add_custom_print_exception()
 
 def ratelimit():
     ratelimitSemaphore.acquire()
-    eventlet.greenthread.spawn_after(1, ratelimitSemaphore.release)
+    eventlet.greenthread.spawn_after(config.ratelimitRate, ratelimitSemaphore.release)
     return
 
 class Board(object):

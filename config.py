@@ -6,6 +6,7 @@
 
 boardUpdateDelay = 120
 imageDir = "./boards"
+ratelimitRate = .3
 
 boards = ["3",
           "a",
