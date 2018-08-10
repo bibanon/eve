@@ -180,7 +180,7 @@ class Board(object):
                      post.get('h', 0),
                      post.get('fsize', 0),
                      post.get('md5', None),
-                     str(post.get('tim', None)) if post.get('tim') else None,
+                     str(post['tim'])+post['ext'] if 'md5' in post else None,
                      post.get('spoiler', 0),
                      0,
                      post.get('capcode', "N")[0].upper(),
