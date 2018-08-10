@@ -340,8 +340,8 @@ scraper = Scraper()
 
 
 
-
-eventlet.spawn(eventlet.backdoor.backdoor_server, eventlet.listen(('localhost', 3000)))
+if __name__ == "__main__":
+    eventlet.spawn(eventlet.backdoor.backdoor_server, eventlet.listen(('localhost', 3000)), locals())
 
 while True:
     eventlet.sleep(1) #This busy loop keeps all the threads running - this can't possibly be how I'm supposed to do things!
