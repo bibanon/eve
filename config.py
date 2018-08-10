@@ -5,6 +5,7 @@
 #           ]
 
 boardUpdateDelay = 120
+imageDir = "./boards"
 
 boards = ["3",
           "a",

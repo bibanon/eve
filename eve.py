@@ -11,7 +11,9 @@ import random
 import logging
 import traceback
 import io
+import os
 import collections
+import tempfile
 from time import sleep
 
 import cfscrape
@@ -35,6 +37,14 @@ fourChanSession = erequests.session()
 cfScraper = cfscrape.create_scraper(sess=fourChanSession)
 
 Request = collections.namedtuple('Request', ['url', 'event'])
+MediaRow = collections.namedtuple('MediaRow',
+    ["media_id",
+    "media_hash", #base64 encoded MD5 or something?
+    "media", #full size filename?
+    "preview_op", #OP preview filename
+    "preview_reply", #replay preview filename
+    "total", # number of instances?
+    "banned"])
 
 insertQuery = ("INSERT INTO `{board}`"
                "  (poster_ip, num, subnum, thread_num, op, timestamp, timestamp_expired, preview_orig, preview_w, preview_h, "
@@ -44,6 +54,7 @@ insertQuery = ("INSERT INTO `{board}`"
                "    FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `{board}` WHERE num = %s AND subnum = 0)"
                "      AND NOT EXISTS (SELECT 1 FROM `{board}_deleted` WHERE num = %s AND subnum = 0);\n")
 updateQuery = "UPDATE `{board}` SET comment = %s, deleted = %s, media_filename = COALESCE(%s, media_filename), sticky = (%s OR sticky), locked = (%s or locked) WHERE num = %s AND subnum = %s"
+selectMediaQuery = 'SELECT * FROM `{board}_images` WHERE `media_hash` = %s'
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='eve.log',level=logging.DEBUG)
@@ -80,6 +91,7 @@ class Board(object):
         self.insertQuery = insertQuery.format(board = board)
         self.updateQuery = updateQuery.format(board = board)
         self.threadUpdateQueue = eventlet.queue.PriorityQueue()
+        self.mediaFetcher = MediaFetcher(board)
 
         eventlet.spawn(self.threadListUpdater)
         eventlet.spawn(self.threadUpdateQueuer)
@@ -189,6 +201,8 @@ class Board(object):
                      post['resto'] if post['resto'] != 0 else post['no'], #resto is RESponse TO (thread number)
                      ))
                 conn.commit()
+            if post.get('md5', False): #queue media download
+                self.mediaFetcher.put(post)
             self.insertQueue.task_done()
 
 
@@ -204,12 +218,107 @@ class Scraper(object):
         self.requestQueue.put(Request(url,evt))
 
     def fetcher(self):
+        logger.debug('scraper loop started')
         while True:
             ratelimit()
             request = self.requestQueue.get()
             logger.debug('fetching url %s', request.url)
             request.event.send(cfScraper.get(request.url))
             self.requestQueue.task_done()
+
+
+class MediaFetcher(object):
+    """Handles media downloads for a single board. Instantiated by each Board.
+
+    doesn't support the old directory structure; does anyone care?"""
+    def __init__(self, board):
+        super(MediaFetcher, self).__init__()
+        self.mediaDLQueue = eventlet.queue.Queue()
+        self.selectMediaQuery = selectMediaQuery.format(board = board)
+        self.board = board
+
+        eventlet.spawn(self.fetcher)
+
+    def put(self, post):
+        self.mediaDLQueue.put(post)
+
+    def fetcher(self):
+        while True:
+            post = self.mediaDLQueue.get()
+            logger.debug('fetching media %s', post['md5'])
+            self.download(post['no'], post['no'] == post['resto'], False, post['tim'], post['ext'], post['md5']) #fixme handle previews
+            self.mediaDLQueue.task_done()
+
+    def download(self, postNum, isOp, isPreview, tim, ext, mediaHash):
+        #Local.java:198
+
+        #Get metadata from DB
+        with connectionPool.item() as conn:
+            c = conn.cursor()
+            result = c.execute(self.selectMediaQuery, (mediaHash,))
+            assert result == 1
+            mediaRow = MediaRow(*c.fetchone())
+
+        if mediaRow.banned:
+            logger.info('Skipping download of banned file ', mediaHash)
+            return
+
+        #determine filename
+        #   Added to DB by insert_image_<board> procedure - triggered by before-ins-<board>
+        if isPreview:
+            filename = mediaRow.preview_op if isOp else mediaRow.preview_reply
+        else:
+            filename = mediaRow.media
+
+        #if(filename == null) return;
+        if filename == None:
+            logger.warning("media download failed to determine destination filename")
+            logger.warning("post {} hash {}".format(postNum, mediaHash))
+            return
+
+        #make directories
+        subdirs = (filename[:4], filename[4:6])
+        logger.debug("folder" + " ".join((config.imageDir, self.board, *subdirs)))
+        destinationFolder = "{}/{}/{}/{}".format(config.imageDir, self.board, *subdirs) #FIXME use os.path.join
+        os.makedirs(destinationFolder, exist_ok = True) #TODO maybe just skip this and use os.renames at the end?
+
+        #set perms on directories
+        #TODO
+
+        #determine final file path, and bail if it already exists
+        destinationPath = destinationFolder + os.sep + filename
+        logger.debug("destPath "+destinationPath)
+        if os.path.exists(destinationPath):
+            logger.info('skipping download of already downloaded media')
+            logger.info("post {} hash {}".format(postNum, mediaHash))
+            return
+
+        #download the URL into a tempfile
+        tmp = tempfile.NamedTemporaryFile(delete = False) #FIXME handle leaks on error
+        logger.debug("url "+" ".join((self.board, str(tim), "s" if isPreview else "", ext)))
+        url = "https://i.4cdn.org/{}/{}{}{}".format(self.board, tim, "s" if isPreview else "", ext)
+        request = cfScraper.get(url)
+        try:
+            request.raise_for_status() #TODO more error handling
+        except requests.exceptions.HTTPError:
+            if request.status_code == 404:
+                logger.info("404 when downloading media")
+                logger.info("post {} hash {}".format(postNum, mediaHash))
+            else:
+                raise
+        for chunk in request.iter_content(chunk_size=1024*64): #media downloading is slow as hell, and my money is on it being this bit. Am I using erequests correctly?
+            tmp.write(chunk)
+        tmp.close()
+
+        #move the tempfile to the final file path
+        os.rename(tmp.name, destinationPath)
+
+        #set permissions on file path
+        #webGroupId is never set in asagi, so should we even do this? Is this even relevant today?
+        # os.chmod(destinationPath, 0o644)
+        #posix.chown(outputFile.getCanonicalPath(), -1, this.webGroupId);
+        logger.info('downloaded media: {}/{}'.format(self.board, filename))
+
 
 
 
