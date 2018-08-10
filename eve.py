@@ -103,6 +103,7 @@ class Board(object):
         eventlet.spawn(self.inserter)
     
     def threadListUpdater(self):
+        logger.debug('threadListUpdater for {} started'.format(self.board))
         while True:
             evt = eventlet.event.Event()
             scraper.get("https://a.4cdn.org/{}/threads.json".format(self.board), evt)
@@ -125,6 +126,7 @@ class Board(object):
             eventlet.sleep(config.boardUpdateDelay)
 
     def threadUpdateQueuer(self):
+        logger.debug('threadUpdateQueuer for {} started'.format(self.board))
         while True:
             thread = self.threadUpdateQueue.get()[1]#strip off priority
             eventlet.greenthread.spawn_n(self.updateThread, thread)
@@ -159,6 +161,7 @@ class Board(object):
         
     
     def inserter(self):
+        logger.debug('self for {} started'.format(self.board))
         while True:
             post = self.insertQueue.get()
             with connectionPool.item() as conn:
