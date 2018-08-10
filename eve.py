@@ -30,12 +30,15 @@ import utils
 
 boards = []
 
+#concurrency control
 connectionPool = eventlet.db_pool.ConnectionPool(MySQLdb, host='localhost', user='root', passwd='', db='asagi', charset='utf8mb4', max_idle=10, max_size=8)
-
 ratelimitSemaphore = eventlet.semaphore.BoundedSemaphore()
+
+#network objects
 fourChanSession = erequests.session()
 cfScraper = cfscrape.create_scraper(sess=fourChanSession)
 
+#namedtuples
 Request = collections.namedtuple('Request', ['url', 'event'])
 MediaRow = collections.namedtuple('MediaRow',
     ["media_id",
@@ -46,6 +49,7 @@ MediaRow = collections.namedtuple('MediaRow',
     "total", # number of instances?
     "banned"])
 
+#SQL queries
 insertQuery = ("INSERT INTO `{board}`"
                "  (poster_ip, num, subnum, thread_num, op, timestamp, timestamp_expired, preview_orig, preview_w, preview_h, "
                "  media_filename, media_w, media_h, media_size, media_hash, media_orig, spoiler, deleted, "
@@ -56,6 +60,7 @@ insertQuery = ("INSERT INTO `{board}`"
 updateQuery = "UPDATE `{board}` SET comment = %s, deleted = %s, media_filename = COALESCE(%s, media_filename), sticky = (%s OR sticky), locked = (%s or locked) WHERE num = %s AND subnum = %s"
 selectMediaQuery = 'SELECT * FROM `{board}_images` WHERE `media_hash` = %s'
 
+#logger stuff
 logger = logging.getLogger(__name__)
 logging.basicConfig(filename='eve.log',level=logging.DEBUG)
 stderr = logging.StreamHandler()
