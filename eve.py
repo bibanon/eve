@@ -28,6 +28,7 @@ from eventlet.green import MySQLdb
 import config
 import utils
 
+
 boards = []
 
 #concurrency control
@@ -85,7 +86,8 @@ def ratelimit():
     return
 
 class Board(object):
-    """Holds data related to each board"""
+    """Each Board manages polling the site and fetching updated
+       threads and queueing DB updates and media downloads."""
 
     def __init__(self, board):
         super(Board, self).__init__()
@@ -93,8 +95,8 @@ class Board(object):
         self.threads = {}
         self.posts = {}
         self.insertQueue = eventlet.queue.Queue()
-        self.insertQuery = insertQuery.format(board = board)
-        self.updateQuery = updateQuery.format(board = board)
+        self.insertQuery = insertQuery.format(board=board)
+        self.updateQuery = updateQuery.format(board=board)
         self.threadUpdateQueue = eventlet.queue.PriorityQueue()
         self.mediaFetcher = MediaFetcher(board)
 
@@ -158,8 +160,6 @@ class Board(object):
             post['board'] = self.board
             self.insertQueue.put(post)
 
-        
-    
     def inserter(self):
         logger.debug('self for {} started'.format(self.board))
         while True:
@@ -348,43 +348,3 @@ if __name__ == "__main__":
 
 while True:
     eventlet.sleep(1) #This busy loop keeps all the threads running - this can't possibly be how I'm supposed to do things!
-
-
-
-
-# fetching a/166435402
-# adding 1 a posts to queue
-# Traceback (most recent call last):
-#   File "C:\Python36\lib\site-packages\eventlet\hubs\hub.py", line 458, in fire_timers
-#     timer()
-#   File "C:\Python36\lib\site-packages\eventlet\hubs\timer.py", line 58, in __call__
-#     cb(*args, **kw)
-#   File "C:\Python36\lib\site-packages\eventlet\event.py", line 168, in _do_send
-#     waiter.switch(result)
-#   File "C:\Python36\lib\site-packages\eventlet\greenthread.py", line 218, in main
-#     result = function(*args, **kwargs)
-#   File "eve.py", line 143, in inserter
-#     post['no'], #post number
-#   File "C:\Python36\lib\site-packages\eventlet\tpool.py", line 186, in doit
-#     result = proxy_call(self._autowrap, f, *args, **kwargs)
-#   File "C:\Python36\lib\site-packages\eventlet\tpool.py", line 144, in proxy_call
-#     rv = execute(f, *args, **kwargs)
-#   File "C:\Python36\lib\site-packages\eventlet\tpool.py", line 125, in execute
-#     six.reraise(c, e, tb)
-#   File "C:\Python36\lib\site-packages\eventlet\support\six.py", line 689, in reraise
-#     raise value
-#   File "C:\Python36\lib\site-packages\eventlet\tpool.py", line 83, in tworker
-#     rv = meth(*args, **kwargs)
-#   File "C:\Python36\lib\site-packages\MySQLdb\cursors.py", line 250, in execute
-#     self.errorhandler(self, exc, value)
-#   File "C:\Python36\lib\site-packages\MySQLdb\connections.py", line 50, in defaulterrorhandler
-#     raise errorvalue
-#   File "C:\Python36\lib\site-packages\MySQLdb\cursors.py", line 247, in execute
-#     res = self._query(query)
-#   File "C:\Python36\lib\site-packages\MySQLdb\cursors.py", line 411, in _query
-#     rowcount = self._do_query(q)
-#   File "C:\Python36\lib\site-packages\MySQLdb\cursors.py", line 374, in _do_query
-#     db.query(q)
-#   File "C:\Python36\lib\site-packages\MySQLdb\connections.py", line 277, in query
-#     _mysql.connection.query(self, query)
-# _mysql_exceptions.DataError: (1406, "Data too long for column 'title' at row 1")
