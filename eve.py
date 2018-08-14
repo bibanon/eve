@@ -16,13 +16,13 @@ import collections
 import tempfile
 from time import sleep
 
+import erequests
 import cfscrape
 import eventlet
 import eventlet.db_pool
 import eventlet.backdoor
 import eventlet.semaphore
 import eventlet.event
-import erequests
 from eventlet.green import MySQLdb
 
 import config
@@ -314,7 +314,7 @@ class MediaFetcher(object):
                 logger.info("post {} hash {}".format(postNum, mediaHash))
             else:
                 raise
-        for chunk in request.iter_content(chunk_size=1024*64): #media downloading is slow as hell, and my money is on it being this bit. Am I using erequests correctly?
+        for chunk in request.iter_content(chunk_size=1024*512):
             tmp.write(chunk)
         tmp.close()
 
