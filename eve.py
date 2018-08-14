@@ -63,7 +63,7 @@ selectMediaQuery = 'SELECT * FROM `{board}_images` WHERE `media_hash` = %s'
 
 #logger stuff
 logger = logging.getLogger(__name__)
-logging.basicConfig(filename='eve.log',level=logging.DEBUG)
+logging.basicConfig(filename='eve.log',level=logging.DEBUG,format='%(asctime)s %(levelname)s:%(message)s')
 stderr = logging.StreamHandler()
 stderr.setLevel(logging.INFO)
 logger.addHandler(stderr)
