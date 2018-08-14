@@ -308,7 +308,7 @@ class MediaFetcher(object):
         request = cfScraper.get(url)
         try:
             request.raise_for_status() #TODO more error handling
-        except requests.exceptions.HTTPError:
+        except erequests.HTTPError:
             if request.status_code == 404:
                 logger.info("404 when downloading media")
                 logger.info("post {} hash {}".format(postNum, mediaHash))
