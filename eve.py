@@ -32,7 +32,7 @@ import utils
 boards = []
 
 #concurrency control
-connectionPool = eventlet.db_pool.ConnectionPool(MySQLdb, host='localhost', user='root', passwd='', db='asagi', charset='utf8mb4', max_idle=10, max_size=8)
+connectionPool = eventlet.db_pool.ConnectionPool(MySQLdb, host='localhost', user='root', passwd='', db='asagi', charset='utf8mb4', sql_mode='ANSI', max_idle=10, max_size=8)
 ratelimitSemaphore = eventlet.semaphore.BoundedSemaphore()
 
 #network objects
@@ -60,6 +60,8 @@ insertQuery = ("INSERT INTO `{board}`"
                "      AND NOT EXISTS (SELECT 1 FROM `{board}_deleted` WHERE num = %s AND subnum = 0);\n")
 updateQuery = "UPDATE `{board}` SET comment = %s, deleted = %s, media_filename = COALESCE(%s, media_filename), sticky = (%s OR sticky), locked = (%s or locked) WHERE num = %s AND subnum = %s"
 selectMediaQuery = 'SELECT * FROM `{board}_images` WHERE `media_hash` = %s'
+with open('create board.sql') as f:
+    createTablesQuery = f.read()
 
 #logger stuff
 logger = logging.getLogger(__name__)
@@ -100,10 +102,32 @@ class Board(object):
         self.threadUpdateQueue = eventlet.queue.PriorityQueue()
         self.mediaFetcher = MediaFetcher(board)
 
+        #check for board tables and create them if necessary
+        with connectionPool.item() as conn:
+            c = conn.cursor()
+            c.execute("SHOW TABLES LIKE '{board}'".format(board = board))
+            if c.rowcount == 0:
+                self.createTables()
+            elif c.rowcount == 1:
+                pass
+            else:
+                logger.error("Something weird happened when checking to see if the board tables exist!")
+                logger.error("board: {} rowcount: {}".format(board, c.rowcount))
+
+
         eventlet.spawn(self.threadListUpdater)
         eventlet.spawn(self.threadUpdateQueuer)
         eventlet.spawn(self.inserter)
     
+    def createTables(self):
+        logger.warning("creating tables for "+self.board)
+        with connectionPool.item() as conn:
+            c = conn.cursor()
+            for statement in createTablesQuery.split('\n\n\n'):
+                c.execute(statement.format(board = self.board))
+            conn.commit()
+
+
     def threadListUpdater(self):
         logger.debug('threadListUpdater for {} started'.format(self.board))
         while True:
