@@ -328,6 +328,7 @@ class MediaFetcher(object):
         logger.info('downloaded media: {}/{}'.format(self.board, filename))
 
 
+scraper = Scraper()
 
 
 if config.boardUpdateDelay < len(config.boards)*2:
@@ -339,7 +340,6 @@ for board in config.boards:
     boards.append(Board(board))
     logger.debug("created Board %s", board)
 
-scraper = Scraper()
 
 
 
