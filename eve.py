@@ -179,6 +179,8 @@ class Board(object):
                 logger.error("unexpected code path - figure this out")
         r = r.json()
 
+        self.threads[thread]['update_queued'] = False
+
         utils.status("adding {} {} posts to queue".format(len(r['posts']), self.board), linefeed=True)
         for post in r['posts']:
             post['board'] = self.board
