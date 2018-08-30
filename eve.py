@@ -4,8 +4,6 @@
 #py 3.5 or 3.6
 
 import json
-import shelve
-import time
 import itertools
 import random
 import logging
@@ -14,7 +12,6 @@ import io
 import os
 import collections
 import tempfile
-from time import sleep
 
 import erequests
 import cfscrape
