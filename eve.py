@@ -320,8 +320,8 @@ class MediaFetcher(object):
         destinationPath = destinationFolder + os.sep + filename
         logger.debug("destPath "+destinationPath)
         if os.path.exists(destinationPath):
-            logger.info('skipping download of already downloaded media')
-            logger.info("post {} hash {}".format(postNum, mediaHash))
+            logger.debug('skipping download of already downloaded media')
+            logger.debug("post {} hash {}".format(postNum, mediaHash))
             return
 
         #download the URL into a tempfile
@@ -348,7 +348,7 @@ class MediaFetcher(object):
         #webGroupId is never set in asagi, so should we even do this? Is this even relevant today?
         # os.chmod(destinationPath, 0o644)
         #posix.chown(outputFile.getCanonicalPath(), -1, this.webGroupId);
-        logger.info('downloaded media: {}/{}'.format(self.board, filename))
+        logger.debug('downloaded media: {}/{}'.format(self.board, filename))
 
 
 scraper = Scraper()
