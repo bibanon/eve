@@ -211,7 +211,7 @@ class Board(object):
                      utils.doClean(post.get('name', 'Anonymous')),
                      post.get('trip', None),
                      utils.doClean(post.get('sub', None)),
-                     post.get('com', None),
+                     utils.doCleanFull(post.get('com', None)),
                      None, #No idea if this is right
                      post.get('sticky', 0),
                      post.get('closed', 0),
