@@ -29,7 +29,7 @@ import utils
 boards = []
 
 #concurrency control
-connectionPool = eventlet.db_pool.ConnectionPool(MySQLdb, host='localhost', user='root', passwd='', db='asagi', charset='utf8mb4', sql_mode='ANSI', max_idle=10, max_size=8)
+connectionPool = eventlet.db_pool.ConnectionPool(MySQLdb, host=config.host, user=config.user, passwd=config.passwd, db=config.db, charset='utf8mb4', sql_mode='ANSI', max_idle=10, max_size=8)
 ratelimitSemaphore = eventlet.semaphore.BoundedSemaphore()
 
 #network objects

@@ -4,6 +4,12 @@ boardUpdateDelay = 120
 imageDir = "./boards"
 ratelimitRate = 1
 
+#Database conection info
+host='localhost'
+user='root'
+passwd=''
+db='eve'
+
 boards = [
          "bant",
          "c",
