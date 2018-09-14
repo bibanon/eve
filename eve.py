@@ -145,6 +145,7 @@ class Board(object):
                     if not self.threads[thread['no']].get('update_queued', False):
                         logger.debug("Thread %s is updated, queueing", thread['no'])
                         self.threadUpdateQueue.put((priority, thread['no']))
+                        self.threads[thread['no']]['last_modified'] = thread['last_modified']
                         self.threads[thread['no']]['update_queued'] = True
             eventlet.sleep(config.boardUpdateDelay)
 
