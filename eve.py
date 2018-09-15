@@ -12,6 +12,7 @@ import io
 import os
 import collections
 import tempfile
+import time
 
 import erequests
 import cfscrape
@@ -56,6 +57,7 @@ insertQuery = ("INSERT INTO `{board}`"
                "    FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM `{board}` WHERE num = %s AND subnum = 0)"
                "      AND NOT EXISTS (SELECT 1 FROM `{board}_deleted` WHERE num = %s AND subnum = 0);\n")
 updateQuery = "UPDATE `{board}` SET comment = %s, deleted = %s, media_filename = COALESCE(%s, media_filename), sticky = (%s OR sticky), locked = (%s or locked) WHERE num = %s AND subnum = %s"
+updateDeletedQuery = "UPDATE `{board}` SET deleted = 1, timestamp_expired = %s WHERE num = %s AND subnum = 0"
 selectMediaQuery = 'SELECT * FROM `{board}_images` WHERE `media_hash` = %s'
 with open('create board.sql') as f:
     createTablesQuery = f.read()
@@ -92,7 +94,6 @@ class Board(object):
         super(Board, self).__init__()
         self.board = board
         self.threads = {}
-        self.posts = {}
         self.insertQueue = eventlet.queue.Queue()
         self.insertQuery = insertQuery.format(board=board)
         self.updateQuery = updateQuery.format(board=board)
@@ -125,6 +126,14 @@ class Board(object):
             conn.commit()
 
 
+    def markDeleted(self, postID):
+        print("post {} deleted ------------------------------------------".format(postID))
+        with connectionPool.item() as conn:
+            c = conn.cursor()
+            c.execute(updateDeletedQuery.format(board = 'b'), (int(time.time()), postID))
+            conn.commit()
+
+
     def threadListUpdater(self):
         logger.debug('threadListUpdater for {} started'.format(self.board))
         while True:
@@ -140,6 +149,7 @@ class Board(object):
                 if thread['no'] not in self.threads:
                     logger.debug("Thread %s is new, queueing", thread['no'])
                     self.threads[thread['no']] = thread
+                    self.threads[thread['no']]['posts'] = {} #used to track seen posts
                     self.threadUpdateQueue.put((priority, thread['no']))
                 elif thread['last_modified'] != self.threads[thread['no']]['last_modified']: #thread updated
                     if not self.threads[thread['no']].get('update_queued', False):
@@ -182,7 +192,14 @@ class Board(object):
         utils.status("adding {} {} posts to queue".format(len(r['posts']), self.board), linefeed=True)
         for post in r['posts']:
             post['board'] = self.board
-            self.insertQueue.put(post)
+            oldPost = self.threads[thread]['posts'].get(post['no'])
+            if post != oldPost: #post is new or has been modified since we last saw it
+                self.threads[thread]['posts'][post['no']] = post
+                self.insertQueue.put(post)
+
+        for postID in self.threads[thread]['posts']: #Check for deletions
+            if postID not in [post['no'] for post in r['posts']]:
+                self.markDeleted(postID)
 
     def inserter(self):
         logger.debug('self for {} started'.format(self.board))
