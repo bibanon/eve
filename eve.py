@@ -206,7 +206,7 @@ class Board(object):
         while True:
             post = self.insertQueue.get()
             with connectionPool.item() as conn:
-                utils.status("processing post {}:{}, {}qDB {}q4CH".format(post['board'], post['no'], self.insertQueue.qsize(), scraper.requestQueue.qsize()))
+                utils.status("processing post {}:{}".format(post['board'], post['no']))
 
                 result = conn.cursor().execute(insertQuery.format(board=post['board']),
                     (post['no'], #post number
@@ -297,6 +297,7 @@ class MediaFetcher(object):
             logger.debug('fetching media %s', post['md5'])
             self.download(post['no'], post['no'] == post['resto'], False, post['tim'], post['ext'], post['md5']) #fixme handle previews
             self.mediaDLQueue.task_done()
+            utils.status()
 
     def download(self, postNum, isOp, isPreview, tim, ext, mediaHash):
         #Local.java:198
@@ -381,7 +382,7 @@ for board in config.boards:
     boards.append(Board(board))
     logger.debug("created Board %s", board)
 
-
+utils.setObjects(boards, scraper) #pass these to utils for easy referencing in status code
 
 
 if __name__ == "__main__":

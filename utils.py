@@ -13,6 +13,10 @@ logger = logging.getLogger("__main__")
 leadingWhitespaceRe = re.compile(r"^\s*$")
 trailingWhitepasceRe = re.compile(r"\s*$")
 
+boards = None
+scraper = None
+
+
 #YotsubaAbstract.java:83
 #I feel like half this shit isn't even relevant anymore
 replacements = [
@@ -83,7 +87,20 @@ def doCleanFull(text):
 
 def clamp(n, smallest, largest): return max(smallest, min(n, largest))
 
-def status(message, linefeed = False):
+def setObjects(b, s):
+    global boards
+    global scraper
+    boards = b
+    scraper = s
+
+
+def status(message="", linefeed=False):
+    toScreen("{}qDB {}q4CH {}qMEDIA ".format(sum([board.insertQueue.qsize() for board in boards]),
+                                            scraper.requestQueue.qsize(),
+                                            sum([board.mediaFetcher.mediaDLQueue.qsize() for board in boards])) + message,
+            linefeed)
+
+def toScreen(message, linefeed):
     logger.debug(message)
     screenSize = shutil.get_terminal_size((60, 20))
     message = message.ljust(screenSize.columns - 1)
