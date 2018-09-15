@@ -127,7 +127,7 @@ class Board(object):
 
 
     def markDeleted(self, postID):
-        print("post {} deleted ------------------------------------------".format(postID))
+        logger.debug("post {}/{} deleted".format(self.board, postID))
         with connectionPool.item() as conn:
             c = conn.cursor()
             c.execute(updateDeletedQuery.format(board = 'b'), (int(time.time()), postID))
@@ -140,7 +140,7 @@ class Board(object):
             evt = eventlet.event.Event()
             scraper.get("https://a.4cdn.org/{}/threads.json".format(self.board), evt)
             threadsJson = evt.wait().json()
-            logger.info(self.board + ': fetched threads.json.')
+            utils.status('fetched {}/threads.json'.format(self.board), linefeed=True)
             tmp = []
             for page in threadsJson:
                 for thread in page['threads']:
@@ -189,7 +189,7 @@ class Board(object):
 
         self.threads[thread]['update_queued'] = False
 
-        utils.status("adding {} {} posts to queue".format(len(r['posts']), self.board), linefeed=True)
+        logger.debug("adding {} {} posts to queue".format(len(r['posts']), self.board))
         for post in r['posts']:
             post['board'] = self.board
             oldPost = self.threads[thread]['posts'].get(post['no'])

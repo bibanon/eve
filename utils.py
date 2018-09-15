@@ -6,6 +6,9 @@
 import re
 import html
 import shutil
+import logging
+
+logger = logging.getLogger("__main__")
 
 leadingWhitespaceRe = re.compile(r"^\s*$")
 trailingWhitepasceRe = re.compile(r"\s*$")
@@ -81,6 +84,7 @@ def doCleanFull(text):
 def clamp(n, smallest, largest): return max(smallest, min(n, largest))
 
 def status(message, linefeed = False):
+    logger.debug(message)
     screenSize = shutil.get_terminal_size((60, 20))
     message = message.ljust(screenSize.columns - 1)
     print(message, end='\r\n' if linefeed else '\r')
