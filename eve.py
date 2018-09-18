@@ -130,7 +130,7 @@ class Board(object):
         logger.debug("post {}/{} deleted".format(self.board, postID))
         with connectionPool.item() as conn:
             c = conn.cursor()
-            c.execute(updateDeletedQuery.format(board = 'b'), (int(time.time()), postID))
+            c.execute(updateDeletedQuery.format(board = self.board), (int(time.time()), postID))
             conn.commit()
 
 
