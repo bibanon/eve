@@ -157,6 +157,13 @@ class Board(object):
                         self.threadUpdateQueue.put((priority, thread['no']))
                         self.threads[thread['no']]['last_modified'] = thread['last_modified']
                         self.threads[thread['no']]['update_queued'] = True
+            #Clear old threads from memory
+            newThreads = [x['no'] for x in tmp]
+            for thread in self.threads:
+                if thread not in newThreads:
+                    logger.debug("thread {}/{} archived".format(self.board, thread))
+                    eventlet.greenthread.spawn_after(1, self.threads.pop, thread) #can't modify dict while iterating over it - lazy solution
+
             eventlet.sleep(config.boardUpdateDelay)
 
     def threadUpdateQueuer(self):
