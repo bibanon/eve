@@ -4,6 +4,8 @@ boardUpdateDelay = 120
 imageDir = "./boards"
 ratelimitRate = 1
 
+downloadMedia = False
+
 #Database conection info
 host='localhost'
 user='root'

@@ -257,7 +257,7 @@ class Board(object):
                      post['resto'] if post['resto'] != 0 else post['no'], #resto is RESponse TO (thread number)
                      ))
                 conn.commit()
-            if post.get('md5', False): #queue media download
+            if post.get('md5', False) and getattr(config, "downloadMedia", True): #queue media download
                 self.mediaFetcher.put(post)
             self.insertQueue.task_done()
 
