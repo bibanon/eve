@@ -51,8 +51,9 @@ replacements = [
     # Links
     (re.compile("<a[^>]*>(.*?)</a>"), "\g<1>"),
     # old spoilers
-    (re.compile("<span class=\"spoiler\"[^>]*>"), "[spoiler]"),
-    (re.compile("</span>"), "[/spoiler]"),
+    (re.compile("<span class=\"spoiler\"[^>]*>(.*?)</span>"), "[spoiler]\g<1>[/spoiler]"),
+    # ShiftJIS
+    (re.compile("<span class=\"sjis\">(.*?)</span>"), "[shiftjis]\g<1>[/shiftjis]"),
     # new spoilers
     (re.compile("<s>"), "[spoiler]"),
     (re.compile("</s>"), "[/spoiler]"),
