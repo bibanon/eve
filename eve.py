@@ -257,7 +257,7 @@ class Board(object):
                      post['resto'] if post['resto'] != 0 else post['no'], #resto is RESponse TO (thread number)
                      ))
                 conn.commit()
-            if post.get('md5', False) and getattr(config, "downloadMedia", True): #queue media download
+            if post.get('md5', False) and (getattr(config, "downloadMedia", False) or getattr(config, "downloadThumbs", False)): #queue media download
                 self.mediaFetcher.put(post)
             self.insertQueue.task_done()
 
@@ -302,7 +302,10 @@ class MediaFetcher(object):
         while True:
             post = self.mediaDLQueue.get()
             logger.debug('fetching media %s', post['md5'])
-            self.download(post['no'], post['no'] == post['resto'], False, post['tim'], post['ext'], post['md5']) #fixme handle previews
+            if getattr(config, "downloadMedia", False):
+                self.download(post['no'], post['resto'] == 0, False, post['tim'], post['ext'], post['md5'])
+            if getattr(config, "downloadThumbs", False):
+                self.download(post['no'], post['resto'] == 0, True, post['tim'], post['ext'], post['md5'])
             self.mediaDLQueue.task_done()
             utils.status()
 
@@ -335,8 +338,7 @@ class MediaFetcher(object):
 
         #make directories
         subdirs = (filename[:4], filename[4:6])
-        logger.debug("folder" + " ".join((config.imageDir, self.board, *subdirs)))
-        destinationFolder = "{}/{}/{}/{}".format(config.imageDir, self.board, *subdirs) #FIXME use os.path.join
+        destinationFolder = "{}/{}/{}/{}".format(config.imageDir+"/thumbs" if isPreview else "/images", self.board, *subdirs) #FIXME use os.path.join
         os.makedirs(destinationFolder, exist_ok = True) #TODO maybe just skip this and use os.renames at the end?
 
         #set perms on directories
@@ -344,7 +346,6 @@ class MediaFetcher(object):
 
         #determine final file path, and bail if it already exists
         destinationPath = destinationFolder + os.sep + filename
-        logger.debug("destPath "+destinationPath)
         if os.path.exists(destinationPath):
             logger.debug('skipping download of already downloaded media')
             logger.debug("post {} hash {}".format(postNum, mediaHash))
@@ -352,8 +353,7 @@ class MediaFetcher(object):
 
         #download the URL into a tempfile
         tmp = tempfile.NamedTemporaryFile(delete = False) #FIXME handle leaks on error
-        logger.debug("url "+" ".join((self.board, str(tim), "s" if isPreview else "", ext)))
-        url = "https://i.4cdn.org/{}/{}{}{}".format(self.board, tim, "s" if isPreview else "", ext)
+        url = "https://i.4cdn.org/{}/{}{}{}".format(self.board, tim, "s" if isPreview else "", ".jpg" if isPreview else ext)
         request = cfScraper.get(url)
         try:
             request.raise_for_status() #TODO more error handling

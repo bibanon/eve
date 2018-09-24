@@ -5,6 +5,7 @@ imageDir = "./boards"
 ratelimitRate = 1
 
 downloadMedia = False
+downloadThumbs = True
 
 #Database conection info
 host='localhost'
