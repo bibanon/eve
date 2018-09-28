@@ -338,7 +338,7 @@ class MediaFetcher(object):
 
         #make directories
         subdirs = (filename[:4], filename[4:6])
-        destinationFolder = "{}/{}/{}/{}".format(config.imageDir+"/"+self.board, "thumbs" if isPreview else "images", *subdirs) #FIXME use os.path.join
+        destinationFolder = "{}/{}/{}/{}".format(config.imageDir+"/"+self.board, "thumb" if isPreview else "images", *subdirs) #FIXME use os.path.join
         os.makedirs(destinationFolder, exist_ok = True) #TODO maybe just skip this and use os.renames at the end?
 
         #set perms on directories
