@@ -278,8 +278,19 @@ class Scraper(object):
         while True:
             ratelimit()
             request = self.requestQueue.get()
-            logger.debug('fetching url %s', request.url)
-            request.event.send(cfScraper.get(request.url))
+            delay = 5
+            while True:
+                try:
+                    logger.debug('fetching url %s', request.url)
+                    response = cfScraper.get(request.url)
+                    break
+                except Exception as e:
+                    logger.warning('{} while fetching {}, will try again in {} seconds'.format(e.__class__.__name__, request.url, delay))
+                    logger.warning('exception args: '+repr(e.args)) #not sure how useful this will be
+                    eventlet.sleep(delay)
+                    delay = min(delay + 5, 300)
+                    continue
+            request.event.send(response)
             self.requestQueue.task_done()
 
 
