@@ -73,10 +73,7 @@ logger.addHandler(stderr)
 def add_custom_print_exception():
     old_print_exception = traceback.print_exception
     def custom_print_exception(etype, value, tb, limit=None, file=None):
-        tb_output = io.StringIO()
-        traceback.print_tb(tb, limit, tb_output)
-        logger.error(tb_output.getvalue())
-        tb_output.close()
+        logger.error(traceback.format_exc())
         old_print_exception(etype, value, tb, limit=None, file=None)
     traceback.print_exception = custom_print_exception
 add_custom_print_exception()
