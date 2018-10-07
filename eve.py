@@ -280,6 +280,7 @@ class Scraper(object):
                 try:
                     logger.debug('fetching url %s', request.url)
                     response = cfScraper.get(request.url)
+                    response.raise_for_status()
                     break
                 except Exception as e:
                     logger.warning('{} while fetching {}, will try again in {} seconds'.format(e.__class__.__name__, request.url, delay))
