@@ -189,7 +189,12 @@ class Board(object):
             else:
                 pass #just break I guess? can't code this if I don't know what would cause it
                 logger.error("unexpected code path - figure this out")
-        r = r.json()
+        try:
+            r = r.json()
+        except json.decoder.JSONDecodeError:
+            print("json.decoder.JSONDecodeError")
+            import code
+            code.interact(local=locals())
 
         self.threads[thread]['update_queued'] = False
 
@@ -275,21 +280,32 @@ class Scraper(object):
         while True:
             ratelimit()
             request = self.requestQueue.get()
-            delay = 5
-            while True:
-                try:
-                    logger.debug('fetching url %s', request.url)
-                    response = cfScraper.get(request.url)
-                    response.raise_for_status()
-                    break
-                except Exception as e:
-                    logger.warning('{} while fetching {}, will try again in {} seconds'.format(e.__class__.__name__, request.url, delay))
-                    logger.warning('exception args: '+repr(e.args)) #not sure how useful this will be
-                    eventlet.sleep(delay)
-                    delay = min(delay + 5, 300)
-                    continue
+            response = self.download(request)
+            if response is None:
+                import code
+                code.interact(local=locals())
             request.event.send(response)
             self.requestQueue.task_done()
+
+    def download(self, request):
+        while True:
+            delay = 5
+            response = None
+            try:
+                logger.debug('fetching url %s', request.url)
+                response = cfScraper.get(request.url)
+                response.raise_for_status()
+                return response
+            except Exception as e:
+                if isinstance(e, erequests.HTTPError):
+                    if response.status_code == 404: #let caller handle 404s
+                        return response
+                #For everything else, log it and try again
+                logger.warning('{} while fetching {}, will try again in {} seconds'.format(e.__class__.__name__, request.url, delay))
+                logger.warning('exception args: '+repr(e.args)) #not sure how useful this will be
+                eventlet.sleep(delay)
+                delay = min(delay + 5, 300)
+                continue
 
 
 class MediaFetcher(object):
@@ -363,15 +379,27 @@ class MediaFetcher(object):
         #download the URL into a tempfile
         tmp = tempfile.NamedTemporaryFile(delete = False) #FIXME handle leaks on error
         url = "https://i.4cdn.org/{}/{}{}{}".format(self.board, tim, "s" if isPreview else "", ".jpg" if isPreview else ext)
-        request = cfScraper.get(url)
-        try:
-            request.raise_for_status() #TODO more error handling
-        except erequests.HTTPError:
-            if request.status_code == 404:
-                logger.info("404 when downloading media")
-                logger.info("post {} hash {}".format(postNum, mediaHash))
-            else:
-                raise
+
+        while True:
+            delay = 5
+            try:
+                logger.debug('fetching media: post {} hash {}'.format(postNum, mediaHash))
+                request = cfScraper.get(url)
+                request.raise_for_status()
+                break
+            except Exception as e:
+                if isinstance(e, erequests.HTTPError):
+                    if request.status_code == 404: #404s are to be expected, just bail when they happen
+                        logger.info("404 when downloading media")
+                        logger.info("post {} hash {}".format(postNum, mediaHash))
+                        return
+                # log everything else and try again
+                logger.warning('{} while fetching media post {} hash {}, will try again in {} seconds'.format(e.__class__.__name__, postNum, mediaHash, delay))
+                logger.warning('exception args: '+repr(e.args)) #not sure how useful this will be
+                eventlet.sleep(delay)
+                delay = min(delay + 5, 300)
+                continue
+
         for chunk in request.iter_content(chunk_size=1024*512):
             tmp.write(chunk)
         tmp.close()
