@@ -12,7 +12,7 @@ It is dramatically more memory efficient than Asagi; archiving Nyafuu's set of b
 * Multi platform - Developed on Windows and Linux, and probably works anywhere you can get a reasonable Python environment up.
 
 # Installation
-Eve is still not tested in large production environments, so you should really contact Phoenix on Bibanon's [IRC](irc://irc.rizon.net/bibanon) or [Matrix](https://matrix.to/#/#bibanon-chat:matrix.org) channels if you want to use it in anything important.
+Eve is still not tested in large production environments, so you should really contact Phoenix on Bibanon's IRC ([#bibanon on irc.rizon.net](irc://irc.rizon.net/bibanon)) or [Matrix](https://matrix.to/#/#bibanon-chat:matrix.org) channels if you want to use it in anything important.
 
 Note: Python beginners, watch out for weird issues mixing versions of the various tools below. Lots of systems include both Python 2 and 3, and plenty of them will have broken setups where `python` points to Python 3, but `virtualenv` points to Python 2, and other similar issues, and this will cause you weird problems.
 1. Install a Python 3.6-3.7. Nearby versions will probably work, but this is untested. If your package manager doesn't include a recent enough version, [pyenv](https://github.com/pyenv/pyenv) can download and compile a local copy that shouldn't interfere with your system Python.
