@@ -281,9 +281,6 @@ class Scraper(object):
             ratelimit()
             request = self.requestQueue.get()
             response = self.download(request)
-            if response is None:
-                import code
-                code.interact(local=locals())
             request.event.send(response)
             self.requestQueue.task_done()
 
