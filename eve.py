@@ -172,29 +172,29 @@ class Board(object):
 
     def updateThread(self, thread):
         '''Fetch thread and queue changes'''
-        evt = eventlet.event.Event()
-        scraper.get("https://a.4cdn.org/{}/thread/{}.json".format(self.board, thread), evt)
-        r = evt.wait()
+        while True:
+            evt = eventlet.event.Event()
+            scraper.get("https://a.4cdn.org/{}/thread/{}.json".format(self.board, thread), evt)
+            r = evt.wait()
 
-        utils.status("fetched {}/{}".format(self.board, thread), linefeed=True)
-        if r.status_code != 200:
-            print("problem when fetching thread:" + str(r.status_code))
-            print(r.text)
-            if r.status_code == 404:
-                del self.threads[thread]
-                return
-            elif r.status_code == 400:
-                print("HTTP error 400 - what do?")
-                return
-            else:
-                pass #just break I guess? can't code this if I don't know what would cause it
-                logger.error("unexpected code path - figure this out")
-        try:
-            r = r.json()
-        except json.decoder.JSONDecodeError:
-            print("json.decoder.JSONDecodeError")
-            import code
-            code.interact(local=locals())
+            utils.status("fetched {}/{}".format(self.board, thread), linefeed=True)
+            if r.status_code != 200:
+                print("problem when fetching thread:" + str(r.status_code))
+                print(r.text)
+                if r.status_code == 404:
+                    del self.threads[thread]
+                    return
+                elif r.status_code == 400:
+                    print("HTTP error 400 - what do?")
+                    return
+                else:
+                    pass #just break I guess? can't code this if I don't know what would cause it
+                    logger.error("unexpected code path - figure this out")
+            try:
+                r = r.json()
+            except json.decoder.JSONDecodeError:
+                continue #4chan/CloudFlare sometimes sends invalid JSON; try again
+            break
 
         self.threads[thread]['update_queued'] = False
 
