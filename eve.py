@@ -13,6 +13,7 @@ import os
 import collections
 import tempfile
 import time
+import shutil
 
 import erequests
 import cfscrape
@@ -396,7 +397,7 @@ class MediaFetcher(object):
         tmp.close()
 
         #move the tempfile to the final file path
-        os.rename(tmp.name, destinationPath)
+        shutil.move(tmp.name, destinationPath)
 
         #set permissions on file path
         #webGroupId is never set in asagi, so should we even do this? Is this even relevant today?
