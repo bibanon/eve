@@ -96,8 +96,8 @@ def setObjects(b, s):
 
 
 def status(message="", linefeed=False):
-    toScreen("{}qDB {}q4CH {}qMEDIA ".format(sum([board.insertQueue.qsize() for board in boards]),
-                                            scraper.requestQueue.qsize(),
+    toScreen("{}q4CH {}qDB {}qMEDIA ".format(scraper.requestQueue.qsize(),
+                                            sum([board.insertQueue.qsize() for board in boards]),
                                             sum([board.mediaFetcher.mediaDLQueue.qsize() for board in boards])) + message,
             linefeed)
 
