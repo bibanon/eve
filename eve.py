@@ -418,7 +418,7 @@ for board in config.boards:
     boards.append(Board(board))
     logger.debug("created Board %s", board)
 
-utils.setObjects(boards, scraper) #pass these to utils for easy referencing in status code
+utils.setObjects(boards, scraper, config) #pass these to utils for easy referencing in status code
 
 
 if __name__ == "__main__":

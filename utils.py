@@ -15,6 +15,7 @@ trailingWhitepasceRe = re.compile(r"\s*$")
 
 boards = None
 scraper = None
+config = None
 
 
 #YotsubaAbstract.java:83
@@ -88,18 +89,22 @@ def doCleanFull(text):
 
 def clamp(n, smallest, largest): return max(smallest, min(n, largest))
 
-def setObjects(b, s):
+def setObjects(b, s, c):
     global boards
     global scraper
+    global config
     boards = b
     scraper = s
+    config = c
 
 
 def status(message="", linefeed=False):
-    toScreen("{}q4CH {}qDB {}qMEDIA ".format(scraper.requestQueue.qsize(),
-                                            sum([board.insertQueue.qsize() for board in boards]),
-                                            sum([board.mediaFetcher.mediaDLQueue.qsize() for board in boards])) + message,
-            linefeed)
+    showMedia = (getattr(config, "downloadMedia", False) or getattr(config, "downloadThumbs", False))
+    tmp = ("{}q4CH {}qDB ".format(scraper.requestQueue.qsize(),
+                                 sum([board.insertQueue.qsize() for board in boards])) + 
+          ("{}qMEDIA ".format(sum([board.mediaFetcher.mediaDLQueue.qsize() for board in boards])) if showMedia else "") +
+          message)
+    toScreen(tmp, linefeed)
 
 def toScreen(message, linefeed):
     logger.debug(message)
