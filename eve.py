@@ -136,13 +136,43 @@ class Board(object):
         logger.debug('threadListUpdater for {} started'.format(self.board))
         while True:
             evt = eventlet.event.Event()
-            scraper.get("https://a.4cdn.org/{}/threads.json".format(self.board), evt)
+            scraper.get("https://a.4cdn.org/{}/catalog.json".format(self.board), evt)
             threadsJson = evt.wait().json()
-            utils.status('fetched {}/threads.json'.format(self.board), linefeed=True)
+            utils.status('fetched {}/catalog.json'.format(self.board), linefeed=True)
             tmp = []
             for page in threadsJson:
                 for thread in page['threads']:
-                    tmp.append(thread)
+                    #  there are filters                 and there is a filter for this board
+                    if getattr(config, "filters", False) and config.filters.get(self.board, None):
+                        filterSpec = config.filters[self.board]
+                        if filterSpec[0] == 'include':
+                            if 'sub' not in thread: #skip threads with no subject
+                                logger.debug("skipping {}/{}; no subject to check include rules against".format(self.board, thread['no']))
+                            else:
+                                for string in filterSpec[1]:
+                                    if string.lower() in thread['sub'].lower():
+                                        logger.debug("added {}/{}; subject matches rule {}".format(self.board, thread['no'], string))
+                                        tmp.append(thread)
+                                        break #stop processing additional rules
+                                logger.debug("skipping {}/{}; subject doesn't match any include rule".format(self.board, thread['no']))
+                        elif filterSpec[0] == 'exclude':
+                            if 'sub' not in thread:
+                                logger.debug("added {}/{}; no subject to check for exclusions".format(self.board, thread['no']))
+                                tmp.append(thread)
+                                continue
+                            skip = False
+                            for string in filterSpec[1]:
+                                if string.lower() in thread['sub'].lower():
+                                    skip = True
+                                    logger.debug("skipping {}/{}; subject matches rule {}".format(self.board, thread['no'], string))
+                                    break
+                            if not skip:
+                                logger.debug("added {}/{}; doesn't match any exclude rules".format(self.board, thread['no']))
+                                tmp.append(thread)
+                        else:
+                            logger.warning("Filter specification is malformed! This will break things")
+                    else: ##nofilter
+                        tmp.append(thread)
             for priority, thread in enumerate(tmp[::-1]):#fetch oldest threads first 
                 if thread['no'] not in self.threads:
                     logger.debug("Thread %s is new, queueing", thread['no'])
