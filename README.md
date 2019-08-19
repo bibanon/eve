@@ -15,7 +15,7 @@ It is dramatically more memory efficient than Asagi; archiving Nyafuu's set of b
 Eve is still not tested in large production environments, so you should really contact Phoenix on Bibanon's IRC ([#bibanon on irc.rizon.net](irc://irc.rizon.net/bibanon)) or [Matrix](https://matrix.to/#/#bibanon-chat:matrix.org) channels if you want to use it in anything important.
 
 Note: Python beginners, watch out for weird issues mixing versions of the various tools below. Lots of systems include both Python 2 and 3, and plenty of them will have broken setups where `python` points to Python 3, but `virtualenv` points to Python 2, and other similar issues, and this will cause you weird problems.
-1. Install a Python 3.6-3.7. Nearby versions will probably work, but this is untested. If your package manager doesn't include a recent enough version, [pyenv](https://github.com/pyenv/pyenv) can download and compile a local copy that shouldn't interfere with your system Python.
+1. Install Python 3.6. Older versions may work, but this is untested. If your package manager doesn't include a recent enough version, [pyenv](https://github.com/pyenv/pyenv) can download and compile a local copy that shouldn't interfere with your system Python.
 2. Create a virtualenv: `virtualenv venv`
 3. Activate it: `source venv/bin/activate`
 4. Install the assorted Python modules Eve needs into the virtual environment: `pip install -r requirements.txt`. If you get an error when installing mysqlclient, you probably need to install the MySQL development package with your distro's package manager so mysqlclient can compile some stuff. Installing the command line MySQL client while you're at it would probably come in handy at some point.
