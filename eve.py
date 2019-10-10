@@ -114,7 +114,7 @@ class Board(object):
         eventlet.spawn(self.threadListUpdater)
         eventlet.spawn(self.threadUpdateQueuer)
         eventlet.spawn(self.inserter)
-    
+
     def createTables(self):
         logger.warning("creating tables for "+self.board)
         with connectionPool.item() as conn:
@@ -143,7 +143,7 @@ class Board(object):
             for page in threadsJson:
                 for thread in page['threads']:
                     tmp.append(thread)
-            for priority, thread in enumerate(tmp[::-1]):#fetch oldest threads first 
+            for priority, thread in enumerate(tmp[::-1]):#fetch oldest threads first
                 if thread['no'] not in self.threads:
                     logger.debug("Thread %s is new, queueing", thread['no'])
                     self.threads[thread['no']] = thread
@@ -397,7 +397,11 @@ class MediaFetcher(object):
         tmp.close()
 
         #move the tempfile to the final file path
-        shutil.move(tmp.name, destinationPath)
+        if os.stat(tmp.name).st_dev == os.stat(destinationFolder).st_dev: #Temp file and destination are on same device
+            shutil.move(tmp.name, destinationPath)                        #so copy is atomic
+        else:
+            shutil.move(tmp.name, destinationPath + '_tmp')
+            shutil.move(destinationPath + '_tmp', destinationPath)
 
         #set permissions on file path
         #webGroupId is never set in asagi, so should we even do this? Is this even relevant today?
