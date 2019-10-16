@@ -369,7 +369,7 @@ class MediaFetcher(object):
             return
 
         #download the URL into a tempfile
-        tmp = tempfile.NamedTemporaryFile(delete = False) #FIXME handle leaks on error
+        tmp = tempfile.NamedTemporaryFile(delete = False, dir=destinationFolder, suffix="_tmp") #FIXME handle leaks on error
         url = "https://i.4cdn.org/{}/{}{}{}".format(self.board, tim, "s" if isPreview else "", ".jpg" if isPreview else ext)
 
         while True:
@@ -397,11 +397,8 @@ class MediaFetcher(object):
         tmp.close()
 
         #move the tempfile to the final file path
-        if os.stat(tmp.name).st_dev == os.stat(destinationFolder).st_dev: #Temp file and destination are on same device
-            shutil.move(tmp.name, destinationPath)                        #so copy is atomic
-        else:
-            shutil.move(tmp.name, destinationPath + '_tmp')
-            shutil.move(destinationPath + '_tmp', destinationPath)
+        #Temp file and destination are on same device so rename is atomic
+        os.rename(tmp.name, destinationPath)
 
         #set permissions on file path
         #webGroupId is never set in asagi, so should we even do this? Is this even relevant today?
