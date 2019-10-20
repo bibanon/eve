@@ -114,7 +114,7 @@ class Board(object):
         eventlet.spawn(self.threadListUpdater)
         eventlet.spawn(self.threadUpdateQueuer)
         eventlet.spawn(self.inserter)
-    
+
     def createTables(self):
         logger.warning("creating tables for "+self.board)
         with connectionPool.item() as conn:
@@ -143,7 +143,7 @@ class Board(object):
             for page in threadsJson:
                 for thread in page['threads']:
                     tmp.append(thread)
-            for priority, thread in enumerate(tmp[::-1]):#fetch oldest threads first 
+            for priority, thread in enumerate(tmp[::-1]):#fetch oldest threads first
                 if thread['no'] not in self.threads:
                     logger.debug("Thread %s is new, queueing", thread['no'])
                     self.threads[thread['no']] = thread
@@ -369,7 +369,7 @@ class MediaFetcher(object):
             return
 
         #download the URL into a tempfile
-        tmp = tempfile.NamedTemporaryFile(delete = False) #FIXME handle leaks on error
+        tmp = tempfile.NamedTemporaryFile(delete = False, dir=destinationFolder, suffix="_tmp") #FIXME handle leaks on error
         url = "https://i.4cdn.org/{}/{}{}{}".format(self.board, tim, "s" if isPreview else "", ".jpg" if isPreview else ext)
 
         while True:
@@ -397,7 +397,8 @@ class MediaFetcher(object):
         tmp.close()
 
         #move the tempfile to the final file path
-        shutil.move(tmp.name, destinationPath)
+        #Temp file and destination are on same device so rename is atomic
+        os.rename(tmp.name, destinationPath)
 
         #set permissions on file path
         #webGroupId is never set in asagi, so should we even do this? Is this even relevant today?
