@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger("__main__")
 
 leadingWhitespaceRe = re.compile(r"^\s*$")
-trailingWhitepasceRe = re.compile(r"\s*$")
+trailingWhitepaceRe = re.compile(r"\s*$")
 
 boards = None
 scraper = None
@@ -73,7 +73,7 @@ def doClean(text):
 
     #Trims whitespace at the beginning and end of lines
     text = re.sub(leadingWhitespaceRe, "", text)
-    text = re.sub(trailingWhitepasceRe, "", text)
+    text = re.sub(trailingWhitepaceRe, "", text)
 
     return text
 
@@ -101,7 +101,7 @@ def setObjects(b, s, c):
 def status(message="", linefeed=False):
     showMedia = (getattr(config, "downloadMedia", False) or getattr(config, "downloadThumbs", False))
     tmp = ("{}q4CH {}qDB ".format(scraper.requestQueue.qsize(),
-                                 sum([board.insertQueue.qsize() for board in boards])) + 
+                                 sum([board.insertQueue.qsize() for board in boards])) +
           ("{}qMEDIA ".format(sum([board.mediaFetcher.mediaDLQueue.qsize() for board in boards])) if showMedia else "") +
           message)
     toScreen(tmp, linefeed)
