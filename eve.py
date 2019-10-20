@@ -372,8 +372,8 @@ class MediaFetcher(object):
         tmp = tempfile.NamedTemporaryFile(delete = False, dir=destinationFolder, suffix="_tmp") #FIXME handle leaks on error
         url = "https://i.4cdn.org/{}/{}{}{}".format(self.board, tim, "s" if isPreview else "", ".jpg" if isPreview else ext)
 
+        delay = 5
         while True:
-            delay = 5
             try:
                 logger.debug('fetching media: post {} hash {}'.format(postNum, mediaHash))
                 request = cfScraper.get(url)
