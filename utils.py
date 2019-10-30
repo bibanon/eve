@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger("__main__")
 
 leadingWhitespaceRe = re.compile(r"^\s*$")
-trailingWhitepaceRe = re.compile(r"\s*$")
+trailingWhitespaceRe = re.compile(r"\s*$")
 
 boards = None
 scraper = None
@@ -73,7 +73,7 @@ def doClean(text):
 
     #Trims whitespace at the beginning and end of lines
     text = re.sub(leadingWhitespaceRe, "", text)
-    text = re.sub(trailingWhitepaceRe, "", text)
+    text = re.sub(trailingWhitespaceRe, "", text)
 
     return text
 
