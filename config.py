@@ -1,5 +1,9 @@
 #Eve config file
 
+logToStdout = False #False for status display, True for debug logs
+logToFile = True
+logFile = "eve.log"
+
 boardUpdateDelay = 120
 imageDir = "./boards"
 ratelimitRate = 1

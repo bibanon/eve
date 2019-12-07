@@ -8,7 +8,7 @@ import html
 import shutil
 import logging
 
-logger = logging.getLogger("__main__")
+logger = logging.getLogger("eve")
 
 leadingWhitespaceRe = re.compile(r"^\s*$")
 trailingWhitepasceRe = re.compile(r"\s*$")
@@ -108,6 +108,8 @@ def status(message="", linefeed=False):
 
 def toScreen(message, linefeed):
     logger.debug(message)
+    if getattr(config, "logToStdout", False):
+        return
     screenSize = shutil.get_terminal_size((60, 20))
     message = message.ljust(screenSize.columns - 1)
     print(message, end='\r\n' if linefeed else '\r')

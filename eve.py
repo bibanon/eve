@@ -63,12 +63,26 @@ selectMediaQuery = 'SELECT * FROM `{board}_images` WHERE `media_hash` = %s'
 with open('create board.sql') as f:
     createTablesQuery = f.read()
 
+
 #logger stuff
-logger = logging.getLogger(__name__)
-logging.basicConfig(filename='eve.log',level=logging.DEBUG,format='%(asctime)s %(levelname)s:%(message)s')
-stderr = logging.StreamHandler()
-stderr.setLevel(logging.INFO)
-logger.addHandler(stderr)
+logger = logging.getLogger("eve")
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(asctime)s %(levelname)s:%(message)s')
+
+if getattr(config, "logToFile", True):
+    fh = logging.FileHandler(getattr(config, "logFile", "eve.log"))
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    logger.info("file logging initialized")
+
+if getattr(config, "logToStdout", False):
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    logger.info("stdout logging initialized")
+
 
 #https://stackoverflow.com/a/9929970/432690
 def add_custom_print_exception():
