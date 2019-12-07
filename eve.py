@@ -71,7 +71,7 @@ formatter = logging.Formatter('%(asctime)s %(levelname)s:%(message)s')
 
 if getattr(config, "logToFile", True):
     fh = logging.FileHandler(getattr(config, "logFile", "eve.log"))
-    fh.setLevel(logging.DEBUG)
+    fh.setLevel(logging.WARNING)
     fh.setFormatter(formatter)
     logger.addHandler(fh)
     logger.info("file logging initialized")
