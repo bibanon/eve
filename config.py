@@ -1,6 +1,7 @@
 #Eve config file
 
 logToStdout = False #False for status display, True for debug logs
+stdoutLogLevel = "INFO"
 logToFile = True
 logFile = "eve.log"
 

@@ -78,7 +78,7 @@ if getattr(config, "logToFile", True):
 
 if getattr(config, "logToStdout", False):
     ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO)
+    ch.setLevel(getattr(config, "stdoutLogLevel", logging.INFO))
     ch.setFormatter(formatter)
     logger.addHandler(ch)
     logger.info("stdout logging initialized")
