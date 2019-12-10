@@ -150,7 +150,8 @@ class Board(object):
         logger.debug('threadListUpdater for {} started'.format(self.board))
         while True:
             evt = eventlet.event.Event()
-            scraper.get("https://a.4cdn.org/{}/threads.json".format(self.board), evt)
+            #           V high but not maximum priority allows threads that are about to be deleted to be fetched first
+            scraper.get(2, "https://a.4cdn.org/{}/threads.json".format(self.board), evt) 
             threadsJson = evt.wait().json()
             utils.status('fetched {}/threads.json'.format(self.board), linefeed=True)
             tmp = []
@@ -162,6 +163,7 @@ class Board(object):
                     logger.debug("Thread %s is new, queueing", thread['no'])
                     self.threads[thread['no']] = thread
                     self.threads[thread['no']]['posts'] = {} #used to track seen posts
+                    self.threads[thread['no']]['update_queued'] = True
                     self.threadUpdateQueue.put((priority, thread['no']))
                 elif thread['last_modified'] != self.threads[thread['no']]['last_modified']: #thread updated
                     if not self.threads[thread['no']].get('update_queued', False):
@@ -181,20 +183,27 @@ class Board(object):
     def threadUpdateQueuer(self):
         logger.debug('threadUpdateQueuer for {} started'.format(self.board))
         while True:
-            thread = self.threadUpdateQueue.get()[1]#strip off priority
-            eventlet.greenthread.spawn_n(self.updateThread, thread)
+            task = self.threadUpdateQueue.get()
+            eventlet.greenthread.spawn_n(self.updateThread, task)
             self.threadUpdateQueue.task_done()
 
-    def updateThread(self, thread):
+    def updateThread(self, task):
         '''Fetch thread and queue changes'''
+        priority, thread = task
         while True:
             evt = eventlet.event.Event()
-            scraper.get("https://a.4cdn.org/{}/thread/{}.json".format(self.board, thread), evt)
+            scraper.get(priority, "https://a.4cdn.org/{}/thread/{}.json".format(self.board, thread), evt)
             r = evt.wait()
 
             if r.status_code == 404:
                 utils.status("404'd:  {}/{}".format(self.board, thread), linefeed=True)
-                del self.threads[thread]
+                try:
+                    del self.threads[thread]
+                except KeyError:
+                    #threadListUpdater may delete threads from the internal threadlist before this
+                    #having the updater unqueue the request would save a request, but be harder to implement
+                    #well thought out pull requests that don't shit up the codebase welcome
+                    pass
                 return
             else:
                 utils.status("fetched {}/{}".format(self.board, thread), linefeed=True)
@@ -275,20 +284,20 @@ class Board(object):
 
 class Scraper(object):
     """Manages access to the 4chan API. Satisfies requests to
-    the API in the order received without violating the ratelimit"""
+    the API in priority order without violating the ratelimit"""
     def __init__(self):
         super(Scraper, self).__init__()
-        self.requestQueue = eventlet.queue.Queue()
+        self.requestQueue = eventlet.queue.PriorityQueue()
         eventlet.spawn(self.fetcher)
 
-    def get(self, url,evt):
-        self.requestQueue.put(Request(url,evt))
+    def get(self, priority, url, evt):
+        self.requestQueue.put((priority, Request(url,evt)))
 
     def fetcher(self):
         logger.debug('scraper loop started')
         while True:
             ratelimit()
-            request = self.requestQueue.get()
+            request = self.requestQueue.get()[1]
             response = self.download(request)
             request.event.send(response)
             self.requestQueue.task_done()
