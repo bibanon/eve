@@ -18,6 +18,9 @@ user='root'
 passwd=''
 db='eve'
 
+checkArchive = True
+checkArchivePercentage = 80
+
 boards = [
          "bant",
          "c",

@@ -14,6 +14,7 @@ import collections
 import tempfile
 import time
 import shutil
+from math import ceil
 
 import erequests
 import cfscrape
@@ -128,6 +129,9 @@ class Board(object):
         eventlet.spawn(self.threadListUpdater)
         eventlet.spawn(self.threadUpdateQueuer)
         eventlet.spawn(self.inserter)
+        if getattr(config, "checkArchive", False):
+            eventlet.spawn(self.checkArchive)
+
 
     def createTables(self):
         logger.warning("creating tables for "+self.board)
@@ -163,22 +167,45 @@ class Board(object):
                     logger.debug("Thread %s is new, queueing", thread['no'])
                     self.threads[thread['no']] = thread
                     self.threads[thread['no']]['posts'] = {} #used to track seen posts
+                    self.threads[thread['no']]['track'] = True
                     self.threads[thread['no']]['update_queued'] = True
-                    self.threadUpdateQueue.put((priority, thread['no']))
+                    self.threadUpdateQueue.put((priority+100000, thread['no']))
                 elif thread['last_modified'] != self.threads[thread['no']]['last_modified']: #thread updated
                     if not self.threads[thread['no']].get('update_queued', False):
                         logger.debug("Thread %s is updated, queueing", thread['no'])
-                        self.threadUpdateQueue.put((priority, thread['no']))
+                        self.threadUpdateQueue.put((priority+100000, thread['no']))
                         self.threads[thread['no']]['last_modified'] = thread['last_modified']
                         self.threads[thread['no']]['update_queued'] = True
             #Clear old threads from memory
             newThreads = [x['no'] for x in tmp]
             for thread in self.threads:
-                if thread not in newThreads:
+                if thread not in newThreads and self.threads[thread]["track"]: #leave archive threads, so they have time to be processed on startup
                     logger.debug("thread {}/{} archived".format(self.board, thread))
                     eventlet.greenthread.spawn_after(1, self.threads.pop, thread) #can't modify dict while iterating over it - lazy solution
 
             eventlet.sleep(config.boardUpdateDelay)
+
+    def checkArchive(self):
+        logger.debug('checkArchive for {} started'.format(self.board))
+        evt = eventlet.event.Event()
+        #           V right after main index
+        scraper.get(3, "https://a.4cdn.org/{}/archive.json".format(self.board), evt)
+        archiveJson = evt.wait().json()
+        utils.status('fetched {}/archive.json'.format(self.board), linefeed=True)
+
+        #are there weird issues here around self.threads if the thread shows in both thread. and archive.?
+
+        #only fetch the last x days of threads
+        percent = getattr(config, "checkArchivePercentage", 35)
+        checkCount = ceil(len(archiveJson)*(percent/100))
+        logger.debug("archive has {} threads; checking {} of them ({}%)".format(len(archiveJson), checkCount, percent))
+
+        for priority, thread in enumerate(archiveJson[checkCount::-1]):#fetch oldest threads first
+            logger.debug('adding archived thread {}/{}'.format(self.board, thread))
+            self.threads[thread] = dict()
+            self.threads[thread]["no"] = thread
+            self.threads[thread]['track'] = False
+            self.threadUpdateQueue.put((priority+500, thread))
 
     def threadUpdateQueuer(self):
         logger.debug('threadUpdateQueuer for {} started'.format(self.board))
@@ -217,16 +244,22 @@ class Board(object):
         self.threads[thread]['update_queued'] = False
 
         logger.debug("adding {} {} posts to queue".format(len(r['posts']), self.board))
-        for post in r['posts']:
-            post['board'] = self.board
-            oldPost = self.threads[thread]['posts'].get(post['no'])
-            if post != oldPost: #post is new or has been modified since we last saw it
-                self.threads[thread]['posts'][post['no']] = post
-                self.insertQueue.put(post)
+        if self.threads[thread]['track']:
+            for post in r['posts']:
+                post['board'] = self.board
+                oldPost = self.threads[thread]['posts'].get(post['no'])
+                if post != oldPost: #post is new or has been modified since we last saw it
+                    self.threads[thread]['posts'][post['no']] = post
+                    self.insertQueue.put(post)
 
-        for postID in self.threads[thread]['posts']: #Check for deletions
-            if postID not in [post['no'] for post in r['posts']]:
-                self.markDeleted(postID)
+            for postID in self.threads[thread]['posts']: #Check for deletions
+                if postID not in [post['no'] for post in r['posts']]:
+                    self.markDeleted(postID)
+        else: #archived thread; skip full accounting
+            for post in r['posts']:
+                post['board'] = self.board
+                self.insertQueue.put(post)
+                #del self.threads[thread] #FIXME
 
     def inserter(self):
         logger.debug('self for {} started'.format(self.board))
